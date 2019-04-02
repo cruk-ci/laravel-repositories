@@ -17,6 +17,7 @@ abstract class EloquentRepository implements RepositoryInterface
     protected $with;
     protected $skipCriteria;
     protected $criteria;
+    protected $nestedCriteria;
     private $modelClassName;
     
     /**
@@ -32,6 +33,7 @@ abstract class EloquentRepository implements RepositoryInterface
         
         $this->skipCriteria = FALSE;
         $this->criteria = [];
+        $this->nestedCriteria = [];
     }
     
     /**
@@ -127,6 +129,17 @@ abstract class EloquentRepository implements RepositoryInterface
     {
         $this->criteria[] = $criteria;
         
+        return $this;
+    }
+
+    /**
+     * @param CriteriaInterface $criteria
+     * @return $this
+     */
+    public function addNestedCriteria( CriteriaInterface $criteria)
+    {
+        $this->nestedCriteria[] = $criteria;
+
         return $this;
     }
     
@@ -260,6 +273,7 @@ abstract class EloquentRepository implements RepositoryInterface
     public function resetScope()
     {
         $this->criteria = [];
+        $this->nestedCriteria = [];
         $this->skipCriteria( FALSE );
         $this->model = new $this->modelClassName();
         return $this;
@@ -277,7 +291,7 @@ abstract class EloquentRepository implements RepositoryInterface
         if ( !is_null( $value ) ) $result = $this->model->where( $field, $value )->forceDelete();
         else
         {
-            if ( !empty( $this->criteria ) ) $result = $this->model->forceDelete();
+            if ( !empty( $this->criteria ) || !empty( $this->nestedCriteria) ) $result = $this->model->forceDelete();
             else $result = FALSE;
         }
         
@@ -327,6 +341,16 @@ abstract class EloquentRepository implements RepositoryInterface
             {
                 if( $criteria instanceof CriteriaInterface ) $this->model = $criteria->apply( $this->model, $this );
             }
+        }
+
+        if( !$this->skipCriteria && count($this->nestedCriteria) > 0 )
+        {
+            $this->model->where(function ($query) {
+                foreach( $this->nestedCriteria as $nestedCriteria )
+                {
+                    if( $nestedCriteria instanceof CriteriaInterface ) $query = $nestedCriteria->apply( $query, $this );
+                }
+            });
         }
         
         return $this;
