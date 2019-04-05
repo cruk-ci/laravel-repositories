@@ -217,7 +217,7 @@ abstract class EloquentRepository implements RepositoryInterface
             // Single update.
             $this->model->where( $field, $value)->update( $cleanFields );
             
-            foreach( $cleanFields as $F => $V ) $this->model->{$F} = $V;
+            foreach( $data as $F => $V ) $this->model->{$F} = $V;
             
             $returnedVal = $this->model;
         } else
