@@ -98,6 +98,14 @@ interface RepositoryInterface
      * @param array $data Data the entity will have.
      * @return mixed Model|NULL An Eloquent object when the entity was created, NULL in case of error.
      */
+    public function new(array $data);
+
+    /**
+     * Creates a new entity of the entity type the repository handles, given certain data and persists the entity to the database.
+     *
+     * @param array $data Data the entity will have.
+     * @return mixed Model|NULL An Eloquent object when the entity was created, NULL in case of error.
+     */
     public function create( array $data );
 
     /**
