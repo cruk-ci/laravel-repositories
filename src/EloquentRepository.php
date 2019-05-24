@@ -185,6 +185,20 @@ abstract class EloquentRepository implements RepositoryInterface
         
         return $this;
     }
+
+    /**
+     * @param array $data
+     * @return mixed
+     */
+    public function new(array $data) {
+        $cleanFields = $this->cleanUnfillableFields( $data );
+
+        $createdObject = $this->model->fill( $cleanFields );
+
+        $this->resetScope();
+
+        return $createdObject;
+    }
     
     
     /**
