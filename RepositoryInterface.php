@@ -101,6 +101,16 @@ interface RepositoryInterface
     public function create( array $data );
 
     /**
+     * Updates as many entities (using methods that respect mutators and casting) as the filter matches with the given $data.
+     *
+     * @param array $data Fields & new values to be updated on the entity/entities.
+     * @param $value mixed Value used for the filter.
+     * @return mixed Model|NULL|integer An Eloquent object representing the updated entity, a number of entities updated if mass updating,
+     * or NULL in case of error.
+     */
+    public function update( array $data, $value = NULL);
+
+    /**
      * Updates as many entities as the filter matches with the given $data.
      *
      * @param array $data Fields & new values to be updated on the entity/entities.

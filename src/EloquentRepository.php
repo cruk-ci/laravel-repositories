@@ -201,6 +201,42 @@ abstract class EloquentRepository implements RepositoryInterface
         
         return $createdObject;
     }
+
+    /**
+     * @param array $data
+     * @param $value
+     * @return mixed
+     */
+    public function update(array $data, $value = NULL)
+    {
+        $cleanFields = $this->cleanUnfillableFields( $data );
+
+        if ( !is_null( $value ) )
+        {
+            // Single update.
+            $this->model->find($value)->fill($cleanFields)->save();
+
+            foreach( $data as $F => $V ) $this->model->{$F} = $V;
+
+            $returnedVal = $this->model;
+        } else
+        {
+            // Mass update.
+            $this->applyCriteria();
+
+            $results = $this->model->get();
+
+            $returnedVal = false;
+            foreach ($results as $result) {
+                $returnedVal = $result->update($cleanFields);
+            }
+
+        }
+
+        $this->resetScope();
+
+        return $returnedVal;
+    }
     
     /**
      * @param array $data
