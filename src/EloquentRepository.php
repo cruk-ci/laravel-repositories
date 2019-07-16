@@ -100,6 +100,7 @@ abstract class EloquentRepository implements RepositoryInterface
     public function findAll( array $columns = ['*'] )
     {
         $this->eagerLoadRelations();
+        $this->applyCriteria();
         $result = $this->model->all( $columns );
         
         $this->resetScope();
