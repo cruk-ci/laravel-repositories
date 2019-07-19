@@ -227,11 +227,13 @@ abstract class EloquentRepository implements RepositoryInterface
         if ( !is_null( $value ) )
         {
             // Single update.
-            $this->model->find($value)->fill($cleanFields)->save();
+            $model = $this->model->find($value);
 
-            foreach( $data as $F => $V ) $this->model->{$F} = $V;
+            $model->fill($cleanFields)->save();
 
-            $returnedVal = $this->model;
+            foreach( $data as $F => $V ) $model->{$F} = $V;
+
+            $returnedVal = $model;
         } else
         {
             // Mass update.
