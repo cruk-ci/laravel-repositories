@@ -293,7 +293,13 @@ abstract class EloquentRepository implements RepositoryInterface
     {
         $this->applyCriteria();
         
-        if ( !is_null( $value ) ) $result = $this->model->where( $field, $value )->delete();
+        if ( !is_null( $value ) ) {
+            if( $field === 'id') {
+                $result = $this->model->find($value)->delete();
+            } else {
+                $result = $this->model->where( $field, $value )->delete();
+            }
+        }
         else
         {
             if ( !empty( $this->criteria ) ) $result = $this->model->delete();
