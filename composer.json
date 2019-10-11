@@ -12,12 +12,12 @@
         }
     ],
     "require": {
-        "php": ">=7.0",
-        "illuminate/config": "5.*",
-        "illuminate/database": "5.*",
-        "illuminate/console": "5.*",
-        "illuminate/pagination": "5.*",
-        "illuminate/filesystem": "5.*"
+        "php": ">=7.2",
+        "illuminate/config": "6.*",
+        "illuminate/database": "6.*",
+        "illuminate/console": "6.*",
+        "illuminate/pagination": "6.*",
+        "illuminate/filesystem": "6.*"
     },
     "autoload": {
         "psr-4": {
