@@ -17,6 +17,7 @@ abstract class EloquentRepository implements RepositoryInterface
     protected $with;
     protected $skipCriteria;
     protected $criteria;
+    protected $nestedCriteria;
     private $modelClassName;
     
     /**
@@ -32,6 +33,7 @@ abstract class EloquentRepository implements RepositoryInterface
         
         $this->skipCriteria = FALSE;
         $this->criteria = [];
+        $this->nestedCriteria = [];
     }
     
     /**
@@ -97,7 +99,6 @@ abstract class EloquentRepository implements RepositoryInterface
      */
     public function findAll( array $columns = ['*'] )
     {
-        $this->eagerLoadRelations();
         $result = $this->model->all( $columns );
         
         $this->resetScope();
@@ -127,6 +128,17 @@ abstract class EloquentRepository implements RepositoryInterface
     {
         $this->criteria[] = $criteria;
         
+        return $this;
+    }
+
+    /**
+     * @param CriteriaInterface $criteria
+     * @return $this
+     */
+    public function addNestedCriteria( CriteriaInterface $criteria)
+    {
+        $this->nestedCriteria[] = $criteria;
+
         return $this;
     }
     
@@ -172,6 +184,20 @@ abstract class EloquentRepository implements RepositoryInterface
         
         return $this;
     }
+
+    /**
+     * @param array $data
+     * @return mixed
+     */
+    public function new(array $data) {
+        $cleanFields = $this->cleanUnfillableFields( $data );
+
+        $createdObject = $this->model->fill( $cleanFields );
+
+        $this->resetScope();
+
+        return $createdObject;
+    }
     
     
     /**
@@ -187,6 +213,44 @@ abstract class EloquentRepository implements RepositoryInterface
         $this->resetScope();
         
         return $createdObject;
+    }
+
+    /**
+     * @param array $data
+     * @param $value
+     * @return mixed
+     */
+    public function update(array $data, $value = NULL)
+    {
+        $cleanFields = $this->cleanUnfillableFields( $data );
+
+        if ( !is_null( $value ) )
+        {
+            // Single update.
+            $model = $this->model->find($value);
+
+            $model->fill($cleanFields)->save();
+
+            foreach( $data as $F => $V ) $model->{$F} = $V;
+
+            $returnedVal = $model;
+        } else
+        {
+            // Mass update.
+            $this->applyCriteria();
+
+            $results = $this->model->get();
+
+            $returnedVal = false;
+            foreach ($results as $result) {
+                $returnedVal = $result->update($cleanFields);
+            }
+
+        }
+
+        $this->resetScope();
+
+        return $returnedVal;
     }
     
     /**
@@ -204,7 +268,7 @@ abstract class EloquentRepository implements RepositoryInterface
             // Single update.
             $this->model->where( $field, $value)->update( $cleanFields );
             
-            foreach( $cleanFields as $F => $V ) $this->model->{$F} = $V;
+            foreach( $data as $F => $V ) $this->model->{$F} = $V;
             
             $returnedVal = $this->model;
         } else
@@ -229,7 +293,13 @@ abstract class EloquentRepository implements RepositoryInterface
     {
         $this->applyCriteria();
         
-        if ( !is_null( $value ) ) $result = $this->model->where( $field, $value )->delete();
+        if ( !is_null( $value ) ) {
+            if( $field === 'id') {
+                $result = $this->model->find($value)->delete();
+            } else {
+                $result = $this->model->where( $field, $value )->delete();
+            }
+        }
         else
         {
             if ( !empty( $this->criteria ) ) $result = $this->model->delete();
@@ -260,6 +330,7 @@ abstract class EloquentRepository implements RepositoryInterface
     public function resetScope()
     {
         $this->criteria = [];
+        $this->nestedCriteria = [];
         $this->skipCriteria( FALSE );
         $this->model = new $this->modelClassName();
         return $this;
@@ -277,7 +348,7 @@ abstract class EloquentRepository implements RepositoryInterface
         if ( !is_null( $value ) ) $result = $this->model->where( $field, $value )->forceDelete();
         else
         {
-            if ( !empty( $this->criteria ) ) $result = $this->model->forceDelete();
+            if ( !empty( $this->criteria ) || !empty( $this->nestedCriteria) ) $result = $this->model->forceDelete();
             else $result = FALSE;
         }
         
@@ -306,11 +377,12 @@ abstract class EloquentRepository implements RepositoryInterface
      */
     protected function cleanUnfillableFields( array $data )
     {
-        $model = $this->model;
-
-        return array_filter($data, function ($key) use ($model) {
-            return $model->isFillable($key);
-        }, ARRAY_FILTER_USE_KEY);
+        foreach( $data as $key => $value )
+        {
+            if ( !$this->model->isFillable($key) ) unset( $data[ $key ] );
+        }
+        
+        return $data;
     }
     
     /**
@@ -324,6 +396,16 @@ abstract class EloquentRepository implements RepositoryInterface
             {
                 if( $criteria instanceof CriteriaInterface ) $this->model = $criteria->apply( $this->model, $this );
             }
+        }
+
+        if( !$this->skipCriteria && count($this->nestedCriteria) > 0 )
+        {
+            $this->model->where(function ($query) {
+                foreach( $this->nestedCriteria as $nestedCriteria )
+                {
+                    if( $nestedCriteria instanceof CriteriaInterface ) $query = $nestedCriteria->apply( $query, $this );
+                }
+            });
         }
         
         return $this;
